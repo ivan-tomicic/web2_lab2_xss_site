@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <!-- The above 3 meta tags *must* come first in the head; any other head content must come *after* these tags -->
+    <title>Lista obaveza</title>
+    <!-- Bootstrap -->
+    <!-- Latest compiled and minified CSS -->
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/css/bootstrap.min.css" integrity="sha384-BVYiiSIFeK1dGmJRAkycuHAHRg32OmUcww7on3RYdg4Va+PmSTsz/K68vbdEjh4u" crossorigin="anonymous">
+</head>
+<body onload="fetchTasks()">
+
+
+
+<div class="container">
+    <h1>Lista obaveza</h1>
+    <div style="margin-bottom: 30px">
+        <label for="security-select"> Sigurnost od XSS napada </label>
+
+        <select name="security" id="security-select" class="form-control" onchange="changeSecurity()">
+            <option value="on">Uključena</option>
+            <option value="off">Isključena</option>
+        </select>
+    </div>
+
+
+    <div class="jumbotron">
+        <h3>Dodaj obvezu</h3>
+        <form id="taskInputForm">
+            <div class="form-group">
+                <input type="text" class="form-control" id="taskDescInput" placeholder="Obveza...">
+            </div>
+            <div class="form-group">
+                <label>Korisnik</label>
+                <input type="text" class="form-control" id="username" placeholder="Tko si">
+            </div>
+            <button type="submit" class="btn btn-primary">Pošalji</button>
+        </form>
+    </div>
+
+    <div class="row">
+        <div class="col-lg-12">
+            <div id="tasksList">
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.12.4/jquery.min.js"></script>
+<script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.3.7/js/bootstrap.min.js" integrity="sha384-Tc5IQib027qvyjSMfHjOMaLkfuWVxZxUPnCJA7l2mCWNIpG9mGCD8wGNIcPD7Txa" crossorigin="anonymous"></script>
+<script src="main.js"></script>
+<script>
+    document.getElementById('taskInputForm').addEventListener('submit', saveTask);
+    function fetchTasks () {
+        var tasks = JSON.parse(localStorage.getItem('tasks'));
+        var tasksList = document.getElementById('tasksList');
+
+        tasksList.innerHTML = '';
+
+        for (var i = 0; i < tasks.length; i++) {
+            var id = tasks[i].id;
+            var desc = tasks[i].description;
+            var username = tasks[i].username;
+
+            tasksList.innerHTML +=   '<div class="well">'+
+                '<h6>ID: ' + id + '</h6>'+
+                '<h3>' + desc + '</h3>'+
+                '<span class="glyphicon glyphicon-user"></span> ' + username + '</p>'+
+                '<a href="#" class="btn btn-danger" onclick="deleteTask(\''+id+'\')">Delete</a>'+
+                '</div>';
+        }
+    }
+
+    function uuidv4() {
+        return ([1e7]+-1e3+-4e3+-8e3+-1e11).replace(/[018]/g, c =>
+            (c ^ crypto.getRandomValues(new Uint8Array(1))[0] & 15 >> c / 4).toString(16)
+        );
+    }
+
+    function saveTask(e) {
+        var taskId = uuidv4();
+        var taskDesc = document.getElementById('taskDescInput').value;
+        var username = document.getElementById('username').value;
+
+        security = document.getElementById('security-select').value
+
+        if(security === "on") {
+            console.log("Tekst prije sanitizacije: ", taskDesc)
+            taskDesc = sanitizeString(taskDesc)
+            console.log("Tekst nakon sanitizacije: ", taskDesc)
+            console.log("Korisnik prije sanitizacije: ", username)
+            taskDesc = sanitizeString(username)
+            console.log("Korisnik nakon sanitizacije: ", username)
+        }
+
+
+
+        var task = {
+            id: taskId,
+            description: taskDesc,
+            username: username
+        }
+
+        if (localStorage.getItem('tasks') === null) {
+            var tasks = [];
+            tasks.push(task);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        } else {
+            var tasks = JSON.parse(localStorage.getItem('tasks'));
+            tasks.push(task);
+            localStorage.setItem('tasks', JSON.stringify(tasks));
+        }
+
+        document.getElementById('taskInputForm').reset();
+
+        fetchTasks();
+
+        e.preventDefault();
+    }
+
+    function deleteTask (id) {
+        var tasks = JSON.parse(localStorage.getItem('tasks'));
+
+        for(var i = 0; i < tasks.length; i++) {
+            if (tasks[i].id == id) {
+                tasks.splice(i, 1);
+            }
+        }
+        localStorage.setItem('tasks', JSON.stringify(tasks));
+
+        fetchTasks();
+    }
+
+    function changeSecurity () {
+        security = document.getElementById('security-select').value
+        localStorage.setItem('tasks', JSON.stringify([]));
+        fetchTasks()
+    }
+    function sanitizeString (str) {
+        return str.replace(/[^\w. ]/gi, function (c) {
+            return '&#' + c.charCodeAt(0) + ';';
+        });
+    }
+</script>
+</body>
+</html>
